@@ -5,6 +5,8 @@ library (doBy)
 library (plyr)
 library (dplyr)
 library (tidyr)
+library(stargazer)
+library(gridExtra)
 
 #Working directory
 setwd('/Users/Vamsi/Documents/W241_UCB/Code')
@@ -217,27 +219,112 @@ merged_w_turk_long$isVideo2_treat_mTurk <-  ifelse((merged_w_turk_long$isVideo2=
 merged_w_turk_long$isVideo3_treat_mTurk <-  ifelse((merged_w_turk_long$isVideo3==1) & (merged_w_turk_long$MTurk_Subject_Treat==1),1,0)
 
 #Regression 1 : Rating = Intercept + B1*treatment + B2*isVideo1 + B3*isVideo2 + B4*isVideo1*Treatment + B5*isVideo2*Treatment
-lm <- lm(rating~treatd+isVideo1+isVideo2+isVideo1_treat+isVideo2_treat,data=merged_w_turk_long)
-summary(lm)
+linear.1 <- lm(rating~treatd+isVideo1+isVideo2+isVideo1_treat+isVideo2_treat,data=merged_w_turk_long)
+summary(linear.1)
 
 #Regression 2: 
-lm <- lm(rating~treatd+isVideo1+isVideo2+isVideo1_treat_nonTurk+isVideo2_treat_nonTurk+isVideo1_treat_mTurk+isVideo2_treat_mTurk,data=merged_w_turk_long)
-summary(lm)
+linear.2 <- lm(rating~treatd+isVideo1+isVideo2+isVideo1_treat_nonTurk+isVideo2_treat_nonTurk+isVideo1_treat_mTurk+isVideo2_treat_mTurk,data=merged_w_turk_long)
+summary(linear.2)
 
-#Histograms of vote distributions
+#Regression 3: Regression 1 + Covariates
+linear.3 <- lm(rating~treatd+isVideo1+isVideo2+isVideo1_treat+isVideo2_treat+female+educ_HS+educ_COL+age_21_30+age_31_40+age_41_50+age_51_60+age_61_70,data=merged_w_turk_long)
+summary(linear.3)
 
-hist(merged_w_turk$v1_choice[merged_w_turk_long$treatd==1])
-hist(merged_w_turk$v1_choice[merged_w_turk_long$treatd==0])
+#Regression 4: Regression 2 + Covariates
+linear.4 <- lm(rating~treatd+isVideo1+isVideo2+isVideo1_treat_nonTurk+isVideo2_treat_nonTurk+isVideo1_treat_mTurk+isVideo2_treat_mTurk+female+educ_HS+educ_COL+age_21_30+age_31_40+age_41_50+age_51_60+age_61_70,data=merged_w_turk_long)
+summary(linear.4)
 
-hist(merged_w_turk$v2_choice[merged_w_turk_long$treatd==1])
-hist(merged_w_turk$v2_choice[merged_w_turk_long$treatd==0])
+#Function to compute Clustered Standard errors
+cl <- function(fm, cluster){
+  require(sandwich, quietly = TRUE)
+  require(lmtest, quietly = TRUE)
+  M <- length(unique(cluster))
+  N <- length(cluster)
+  K <- fm$rank
+  dfc <- (M/(M-1))*((N-1)/(N-K))
+  uj <- apply(estfun(fm),2, function(x) tapply(x, cluster, sum));
+  vcovCL <- dfc*sandwich(fm, meat=crossprod(uj)/N)
+  coeftest(fm, vcovCL)
+}
+
+#Clustering on UserID's
+cl1 <- cl(linear.1,factor(as.character(merged_w_turk_long$userid)))
+cl1
+
+cl2 <- cl(linear.2,factor(as.character(merged_w_turk_long$userid)))
+cl2
+
+cl3 <- cl(linear.3,factor(as.character(merged_w_turk_long$userid)))
+cl3
+
+cl4 <- cl(linear.4,factor(as.character(merged_w_turk_long$userid)))
+cl4
+
+d <- merged_w_turk
+
+##Pulling out Demographic Characteristics from the data-frame
+freq<-d %>% 
+  group_by(MTurk_Subject) %>%
+  summarise(women = (sum(female==1)),
+            men = (sum(female==0)),
+            HS = (sum(educ_HS==1)),
+            COL = (sum(educ_COL==1)),
+            GS  = sum(educ_GS==1),
+            age_21_30  = sum(age_21_30==1),
+            age_31_40  = sum(age_31_40==1),
+            age_41_50  = sum(age_41_50==1),
+            age_51_60  = sum(age_51_60==1),
+            age_61_70  = sum(age_61_70==1),
+            age_71_80  = sum(age_71_80==1),
+            age_81_plus  = sum(age_81_plus==1)
+            ) 
+ungroup
+
+#outputting freq data-frame to PDF
+pdf("data_output2.pdf", height=3, width=15)
+grid.table(freq,rows=NULL)
+dev.off()
+
+#Histograms and means of vote distributions
+
+hist(merged_w_turk$v1_choice[merged_w_turk$treatd==1])
+hist(merged_w_turk$v1_choice[merged_w_turk$treatd==0])
+
+hist(merged_w_turk$v2_choice[merged_w_turk$treatd==1])
+hist(merged_w_turk$v2_choice[merged_w_turk$treatd==0])
 
 hist(merged_w_turk$v3_choice[merged_w_turk$treatd==1])
 hist(merged_w_turk$v3_choice[merged_w_turk$treatd==0])
 
+mean(merged_w_turk$v1_choice[merged_w_turk$treatd==1])
+mean(merged_w_turk$v1_choice[merged_w_turk$treatd==0])
 
+mean(merged_w_turk$v2_choice[merged_w_turk$treatd==1])
+mean(merged_w_turk$v2_choice[merged_w_turk$treatd==0])
+
+mean(merged_w_turk$v3_choice[merged_w_turk$treatd==1])
+mean(merged_w_turk$v3_choice[merged_w_turk$treatd==0])
+
+########################################################################################
 #Covariate balance check for gender (TO-DO)
 
 #female_control <- ifelse((merged_datac$female==1) & (merged_datac$treatd==0),1,0)
 #female_treatment <- ifelse((merged_datac$female==1) & (merged_datac$treatd==1),1,0)
 #t.test(female_control,female_treatment)
+########################################################################################
+
+#latex for regression tables
+#pandoc t.txt -V geometry:margin=0in -V fontsize=10pt -o t2.pdf
+stargazer(cl1,cl2,cl3,cl4)
+
+#outputting data-frame to PDF
+pdf("data_output0.pdf", height=3, width=22)
+dim(merged_w_turk)
+grid.table(merged_w_turk[1:10,1:14],rows=NULL)
+dev.off()
+
+#outputting data-frame to PDF
+pdf("data_output1.pdf", height=3, width=22)
+dim(merged_w_turk)
+grid.table(merged_w_turk[1:10,15:30],rows=NULL)
+dev.off()
