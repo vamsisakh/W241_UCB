@@ -262,8 +262,26 @@ cl4
 
 d <- merged_w_turk
 
-##Pulling out Demographic Characteristics from the data-frame
-freq<-d %>% 
+##Pulling out Demographic Characteristics for the treatmet and control groups
+freq_0<-d %>% 
+  group_by(treatd) %>%
+  summarise(women = (sum(female==1)),
+            men = (sum(female==0)),
+            HS = (sum(educ_HS==1)),
+            COL = (sum(educ_COL==1)),
+            GS  = sum(educ_GS==1),
+            age_21_30  = sum(age_21_30==1),
+            age_31_40  = sum(age_31_40==1),
+            age_41_50  = sum(age_41_50==1),
+            age_51_60  = sum(age_51_60==1),
+            age_61_70  = sum(age_61_70==1),
+            age_71_80  = sum(age_71_80==1),
+            age_81_plus  = sum(age_81_plus==1)
+  ) 
+ungroup
+
+##Pulling out Demographic Characteristics from the data-frame group by whether we recruited on Mturk or not
+freq_1<-d %>% 
   group_by(MTurk_Subject) %>%
   summarise(women = (sum(female==1)),
             men = (sum(female==0)),
@@ -280,9 +298,14 @@ freq<-d %>%
             ) 
 ungroup
 
-#outputting freq data-frame to PDF
-pdf("data_output2.pdf", height=3, width=15)
-grid.table(freq,rows=NULL)
+#outputting freq_0 data-frame to PDF
+pdf("data_output_freq0.pdf", height=1, width=13)
+grid.table(freq_0,rows=NULL)
+dev.off()
+
+#outputting freq_1 data-frame to PDF
+pdf("data_output_freq1.pdf", height=1, width=13)
+grid.table(freq_1,rows=NULL)
 dev.off()
 
 #Histograms and means of vote distributions
@@ -318,13 +341,32 @@ mean(merged_w_turk$v3_choice[merged_w_turk$treatd==0])
 stargazer(cl1,cl2,cl3,cl4)
 
 #outputting data-frame to PDF
-pdf("data_output0.pdf", height=3, width=22)
+pdf("data_output0.pdf", height=3, width=12)
 dim(merged_w_turk)
-grid.table(merged_w_turk[1:10,1:14],rows=NULL)
+grid.table(merged_w_turk[1:10,1:6],rows=NULL)
 dev.off()
 
 #outputting data-frame to PDF
-pdf("data_output1.pdf", height=3, width=22)
+pdf("data_output1.pdf", height=3, width=8)
 dim(merged_w_turk)
-grid.table(merged_w_turk[1:10,15:30],rows=NULL)
+grid.table(merged_w_turk[1:10,7:12],rows=NULL)
 dev.off()
+
+#outputting data-frame to PDF
+pdf("data_output2.pdf", height=3, width=8)
+dim(merged_w_turk)
+grid.table(merged_w_turk[1:10,13:18],rows=NULL)
+dev.off()
+
+#outputting data-frame to PDF
+pdf("data_output3.pdf", height=3, width=8)
+dim(merged_w_turk)
+grid.table(merged_w_turk[1:10,19:24],rows=NULL)
+dev.off()
+
+#outputting data-frame to PDF
+pdf("data_output4.pdf", height=3, width=8)
+dim(merged_w_turk)
+grid.table(merged_w_turk[1:10,25:30],rows=NULL)
+dev.off()
+
